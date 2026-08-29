@@ -4,7 +4,7 @@ import { verificarToken } from "@/lib/auth";
 import { gerarPdfEtiquetas } from "@/lib/pdf-etiquetas";
 import { gerarBarcodePngNode } from "@/lib/barcode-node";
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: loteId } = await params;
 
   const token = req.cookies.get("token")?.value;

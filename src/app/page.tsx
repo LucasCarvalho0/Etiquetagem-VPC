@@ -82,19 +82,9 @@ export default function HomePage() {
   async function baixarPdf(lote: Lote) {
     setBaixandoPdf(lote.id);
     try {
-      const res = await fetch(`/api/lotes/${lote.id}/pdf`, { method: "POST" });
-      if (!res.ok) return;
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${lote.codigo}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      window.location.href = `/api/lotes/${lote.id}/pdf`;
     } finally {
-      setBaixandoPdf(null);
+      setTimeout(() => setBaixandoPdf(null), 1500);
     }
   }
 

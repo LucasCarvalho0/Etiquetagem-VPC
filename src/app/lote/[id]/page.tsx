@@ -110,27 +110,16 @@ export default function LotePage() {
     setGerandoPdf(true);
     setScannerAtivo(false);
     try {
-      const res = await fetch(`/api/lotes/${loteId}/pdf`, { method: "POST" });
-      if (!res.ok) {
-        const data = await res.json();
-        setMensagem({ tipo: "erro", texto: data.erro ?? "Falha ao gerar PDF" });
-        return;
-      }
-
-      // Faz download direto via blob
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `lote-${loteId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
+      // 1. Finaliza no banco
       await fetch(`/api/lotes/${loteId}/finalizar`, { method: "POST" });
-      router.push("/");
-    } finally {
+      
+      // 2. Aciona o download nativo pelo navegador
+      window.location.href = `/api/lotes/${loteId}/pdf`;
+      
+      // 3. Aguarda 1 segundo e volta para a página inicial
+      setTimeout(() => router.push("/"), 1200);
+    } catch {
+      setMensagem({ tipo: "erro", texto: "Erro de conexão ao finalizar lote" });
       setGerandoPdf(false);
       setScannerAtivo(true);
     }
