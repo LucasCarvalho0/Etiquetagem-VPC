@@ -68,48 +68,19 @@ export async function gerarPdfEtiquetas(
 
     const etiqueta = etiquetas[i];
 
-    pagina.drawRectangle({
-      x,
-      y: yBase,
-      width: etiquetaLarguraPt - 2,
-      height: etiquetaAlturaPt - 2,
-      borderColor: rgb(0.7, 0.7, 0.7),
-      borderWidth: 0.5,
-    });
-
-    if (config.nomeEmpresa) {
-      pagina.drawText(config.nomeEmpresa, {
-        x: x + 8,
-        y: yTopo - 14,
-        size: 8,
-        font: fonteBold,
-        color: rgb(0.3, 0.3, 0.3),
-      });
-    }
-
-    // O usuário pediu o VIN ("chassi") beem grande e claro
-    const vinSize = 18;
-    const vinWidth = fonteBold.widthOfTextAtSize(etiqueta.vin, vinSize);
-    pagina.drawText(etiqueta.vin, {
-      x: x + (etiquetaLarguraPt - vinWidth) / 2,
-      y: yBase + (etiquetaAlturaPt * 0.68), // Bem topo, centralizado
-      size: vinSize,
-      font: fonteBold,
-      color: rgb(0, 0, 0),
-    });
+    // Removemos as bordas (drawRectangle) e textos acessórios para ficar IDÊNTICO à foto exigida.
 
     const imagemBarcode = barcodeImagens.get(etiqueta.vin);
     if (imagemBarcode) {
       const png = await pdfDoc.embedPng(imagemBarcode);
       
-      // Ajusta o código de barras respeitando a proporção nativa para máxima velocidade de escaneamento.
-      // E centraliza embaixo do chassi conforme solicitado.
-      const targetHeight = etiquetaAlturaPt * 0.40; 
+      // O código de barras é a estrela: bem alto e largo, mantendo a proporção
+      const targetHeight = etiquetaAlturaPt * 0.55; 
       const scaleFactor = targetHeight / png.height;
       const targetWidth = png.width * scaleFactor;
       
       const imgX = x + (etiquetaLarguraPt - targetWidth) / 2;
-      const imgY = yBase + (etiquetaAlturaPt * 0.22); // Exatamente abaixo do VIN
+      const imgY = yBase + (etiquetaAlturaPt * 0.35); // Barcode na parte superior do slot
 
       pagina.drawImage(png, {
         x: imgX,
@@ -117,18 +88,16 @@ export async function gerarPdfEtiquetas(
         width: targetWidth,
         height: targetHeight,
       });
-    }
 
-    if (etiqueta.modelo || etiqueta.cor) {
-      const linhaInfo = [etiqueta.modelo, etiqueta.cor].filter(Boolean).join(" · ");
-      const infoSize = 9;
-      const infoWidth = fonte.widthOfTextAtSize(linhaInfo, infoSize);
-      pagina.drawText(linhaInfo, {
-        x: x + (etiquetaLarguraPt - infoWidth) / 2,
-        y: yBase + 4,
-        size: infoSize,
-        font: fonte,
-        color: rgb(0.3, 0.3, 0.3),
+      // O VIN (Chassi) vai colado exatamente abaixo do barcode, leitura limpa e gigante
+      const vinSize = 24; 
+      const vinWidth = fonteBold.widthOfTextAtSize(etiqueta.vin, vinSize);
+      pagina.drawText(etiqueta.vin, {
+        x: x + (etiquetaLarguraPt - vinWidth) / 2,
+        y: imgY - 22, // 22 pontos abaixo do limite inferior do barcode
+        size: vinSize,
+        font: fonteBold,
+        color: rgb(0, 0, 0),
       });
     }
 
