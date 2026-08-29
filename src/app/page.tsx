@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { Trash2 } from "lucide-react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Lote {
   id: string;
@@ -20,6 +32,8 @@ export default function HomePage() {
   const router = useRouter();
   const [lotes, setLotes] = useState<Lote[]>([]);
   const [criando, setCriando] = useState(false);
+  const [loteExcluindo, setLoteExcluindo] = useState<Lote | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   useEffect(() => {
     fetch("/api/lotes")
@@ -48,6 +62,22 @@ export default function HomePage() {
     }
   }
 
+  async function confirmarExclusao() {
+    if (!loteExcluindo) return;
+    setExcluindo(true);
+    try {
+      const res = await fetch(`/api/lotes/${loteExcluindo.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setLotes((prev) => prev.filter((l) => l.id !== loteExcluindo.id));
+      }
+    } finally {
+      setExcluindo(false);
+      setLoteExcluindo(null);
+    }
+  }
+
   const lotesAbertos = lotes.filter((l) => l.status === "ABERTO");
   const lotesRecentes = lotes.filter((l) => l.status !== "ABERTO").slice(0, 10);
 
@@ -71,13 +101,29 @@ export default function HomePage() {
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-medium text-muted-foreground">Lotes em andamento</h2>
           {lotesAbertos.map((lote) => (
-            <Card key={lote.id} className="cursor-pointer hover:bg-accent/50" onClick={() => router.push(`/lote/${lote.id}`)}>
+            <Card key={lote.id} className="cursor-pointer hover:bg-accent/50">
               <CardContent className="flex items-center justify-between p-4">
-                <div>
+                <div
+                  className="flex-1 min-w-0"
+                  onClick={() => router.push(`/lote/${lote.id}`)}
+                >
                   <p className="font-medium">{lote.codigo}</p>
-                  <p className="text-sm text-muted-foreground">{lote.operador.nome} · {lote._count.veiculos} veículos</p>
+                  <p className="text-sm text-muted-foreground">
+                    {lote.operador.nome} · {lote._count.veiculos} veículos
+                  </p>
                 </div>
-                <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-1">Aberto</span>
+                <div className="flex items-center gap-2 ml-2">
+                  <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-1">Aberto</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    onClick={(e) => { e.stopPropagation(); setLoteExcluindo(lote); }}
+                    aria-label="Excluir lote"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -94,13 +140,24 @@ export default function HomePage() {
             <ul className="divide-y">
               {lotesRecentes.map((lote) => (
                 <li key={lote.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium">{lote.codigo}</p>
                     <p className="text-muted-foreground">
                       {new Date(lote.iniciadoEm).toLocaleDateString("pt-BR")} · {lote.operador.nome}
                     </p>
                   </div>
-                  <span className="text-muted-foreground">{lote._count.veiculos} veíc.</span>
+                  <div className="flex items-center gap-3 ml-2">
+                    <span className="text-muted-foreground">{lote._count.veiculos} veíc.</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setLoteExcluindo(lote)}
+                      aria-label="Excluir lote"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </li>
               ))}
               {lotesRecentes.length === 0 && (
@@ -110,6 +167,31 @@ export default function HomePage() {
           </CardContent>
         </Card>
       </section>
+
+      {/* DIALOG DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      <AlertDialog open={!!loteExcluindo} onOpenChange={() => !excluindo && setLoteExcluindo(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir lote?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o lote{" "}
+              <b>{loteExcluindo?.codigo}</b>?{" "}
+              Todos os <b>{loteExcluindo?._count.veiculos} veículos</b> e PDFs gerados serão removidos permanentemente.
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmarExclusao}
+              disabled={excluindo}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {excluindo ? "Excluindo..." : "Excluir lote"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
