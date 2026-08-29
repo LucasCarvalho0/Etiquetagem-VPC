@@ -21,14 +21,14 @@ export function validarVin(vin: string): { valido: boolean; motivo?: string } {
  * Extrai o VIN a partir do conteúdo bruto do QR Code.
  *
  * Formato das etiquetas de pátio (ex: Localiza, Movida):
- *   TRIM#VIN  →  ex: "153595#94DFCAP15VUB200465"
- *   O chassi vem sempre APÓS o símbolo '#'.
+ *   TRIM#VINsufixo  →  ex: "153595#94DFCAP15VB200465KA"
+ *   O chassi são os PRIMEIROS 17 alfanuméricos APÓS o '#'.
+ *   VINs brasileiros podem começar com dígito (ex: 94...).
  *
  * Estratégias (em ordem):
  * 1. JSON com campo "vin"
- * 2. Conteúdo após '#' que tenha 17 chars alfanuméricos
- * 3. Sequência de 17 chars que começa com letra (WMI sempre começa com letra)
- * 4. Últimos 17 alfanuméricos (fallback para prefixos numéricos sem separador)
+ * 2. Após '#': primeiros 17 chars alfanuméricos (ignora sufixo extra)
+ * 3. Fallback: primeiros 17 alfanuméricos de toda a string
  */
 export function extrairVinDoQr(conteudoBruto: string): string {
   const bruto = conteudoBruto.trim();
@@ -43,29 +43,23 @@ export function extrairVinDoQr(conteudoBruto: string): string {
     }
   } catch {}
 
-  // 2. Formato CAMPO#VIN — extrai tudo após o último '#'
+  // 2. Formato CAMPO#VIN[sufixo] — pega os primeiros 17 alfanuméricos após '#'
   if (bruto.includes("#")) {
     const partes = bruto.split("#");
-    // Pega a última parte (ou a que tiver 17 chars alphanumeric)
+    // Itera da última parte para a primeira buscando 17+ chars alfanuméricos
     for (let i = partes.length - 1; i >= 0; i--) {
-      const candidato = partes[i].replace(/[\s\-_]/g, "").toUpperCase();
-      if (/^[A-Z0-9]{17}$/.test(candidato)) return candidato;
-      // Se tiver mais de 17, pega os primeiros 17 que começam com letra
-      const match = candidato.match(/[A-Z][A-Z0-9]{16}/);
-      if (match) return match[0];
+      const candidato = partes[i].replace(/[\s\-_]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (candidato.length >= 17) {
+        return candidato.slice(0, 17); // primeiros 17 = VIN (sufixo descartado)
+      }
     }
   }
 
-  // 3. Remove separadores e busca 17 chars começando com letra (padrão VIN oficial)
-  const limpo = bruto.replace(/[\s\-_#]/g, "").toUpperCase();
-  const matchLetra = limpo.match(/[A-Z][A-Z0-9]{16}/);
-  if (matchLetra) return matchLetra[0];
+  // 3. Fallback: primeiros 17 alfanuméricos de toda a string (remove separadores)
+  const soAlpha = bruto.replace(/[^A-Z0-9]/gi, "").toUpperCase();
+  if (soAlpha.length >= 17) return soAlpha.slice(0, 17);
 
-  // 4. Fallback: últimos 17 alfanuméricos
-  const soAlpha = limpo.replace(/[^A-Z0-9]/g, "");
-  if (soAlpha.length >= 17) return soAlpha.slice(-17);
-
-  return soAlpha;
+  return soAlpha.toUpperCase();
 }
 
 export function normalizarCodigoBarras(vin: string): string {
