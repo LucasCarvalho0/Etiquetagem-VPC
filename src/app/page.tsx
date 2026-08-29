@@ -180,18 +180,44 @@ export default function HomePage() {
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <AlertDialogAction
+          <div className="flex flex-col gap-3 pt-2">
+            <button
               onClick={confirmarExclusao}
               disabled={excluindo}
-              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "8px",
+                backgroundColor: "#dc2626",
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "15px",
+                border: "none",
+                cursor: excluindo ? "not-allowed" : "pointer",
+                opacity: excluindo ? 0.7 : 1,
+              }}
             >
-              {excluindo ? "Excluindo..." : "Sim, excluir lote"}
-            </AlertDialogAction>
-            <AlertDialogCancel disabled={excluindo} className="w-full">
-              Não, cancelar
-            </AlertDialogCancel>
-          </AlertDialogFooter>
+              {excluindo ? "Excluindo..." : "✓ Sim, excluir lote"}
+            </button>
+            <button
+              onClick={() => !excluindo && setLoteExcluindo(null)}
+              disabled={excluindo}
+              style={{
+                width: "100%",
+                padding: "12px",
+                borderRadius: "8px",
+                backgroundColor: "transparent",
+                color: "inherit",
+                fontWeight: 500,
+                fontSize: "15px",
+                border: "1px solid #e2e8f0",
+                cursor: excluindo ? "not-allowed" : "pointer",
+                opacity: excluindo ? 0.7 : 1,
+              }}
+            >
+              ✕ Não, cancelar
+            </button>
+          </div>
         </AlertDialogContent>
       </AlertDialog>
     </main>
