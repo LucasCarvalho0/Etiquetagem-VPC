@@ -180,15 +180,17 @@ export default function HomePage() {
               Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={excluindo}>Cancelar</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogAction
               onClick={confirmarExclusao}
               disabled={excluindo}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {excluindo ? "Excluindo..." : "Excluir lote"}
+              {excluindo ? "Excluindo..." : "Sim, excluir lote"}
             </AlertDialogAction>
+            <AlertDialogCancel disabled={excluindo} className="w-full">
+              Não, cancelar
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
