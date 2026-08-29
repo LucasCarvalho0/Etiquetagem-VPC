@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verificarToken } from "@/lib/auth";
 import { gerarPdfEtiquetas } from "@/lib/pdf-etiquetas";
-import { gerarBarcodePngNode } from "@/lib/barcode-node";
+import { gerarBarcodePngNode } from "../../../../../lib/barcode-node";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: loteId } = await params;
