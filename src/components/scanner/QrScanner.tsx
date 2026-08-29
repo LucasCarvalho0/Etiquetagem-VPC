@@ -14,6 +14,9 @@ export function QrScanner({ onLeitura, ativo }: QrScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const ultimaLeituraRef = useRef<{ texto: string; timestamp: number } | null>(null);
+  // Guardamos sempre a versão mais recente do callback sem colocá-lo nas deps do effect
+  const onLeituraRef = useRef(onLeitura);
+  useEffect(() => { onLeituraRef.current = onLeitura; }, [onLeitura]);
 
   useEffect(() => {
     if (!ativo) return;
@@ -34,12 +37,12 @@ export function QrScanner({ onLeitura, ativo }: QrScannerProps) {
           (textoDecodificado) => {
             const agora = Date.now();
             const ultima = ultimaLeituraRef.current;
-            // Evita leituras duplicadas repetidas em sequência (debounce de 1.5s)
-            if (ultima && ultima.texto === textoDecodificado && agora - ultima.timestamp < 1500) {
+            // Evita leituras duplicadas repetidas em sequência (debounce de 2s)
+            if (ultima && ultima.texto === textoDecodificado && agora - ultima.timestamp < 2000) {
               return;
             }
             ultimaLeituraRef.current = { texto: textoDecodificado, timestamp: agora };
-            onLeitura(textoDecodificado);
+            onLeituraRef.current(textoDecodificado);
           },
           () => {
             // erro de leitura por frame — ignorado (comum durante o foco da câmera)
@@ -55,9 +58,10 @@ export function QrScanner({ onLeitura, ativo }: QrScannerProps) {
       const scanner = scannerRef.current;
       if (scanner) {
         scanner.stop().catch(() => {});
+        scannerRef.current = null;
       }
     };
-  }, [ativo, onLeitura]);
+  }, [ativo]);
 
   return (
     <div className="w-full">

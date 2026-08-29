@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { QrScanner } from "@/components/scanner/QrScanner";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -53,7 +53,9 @@ export default function LotePage() {
   const [scannerAtivo, setScannerAtivo] = useState(true);
   const [mensagem, setMensagem] = useState<{ tipo: "erro" | "ok"; texto: string } | null>(null);
   const [gerandoPdf, setGerandoPdf] = useState(false);
-  const [processandoLeitura, setProcessandoLeitura] = useState(false);
+
+  // Usar ref para evitar recriar o callback a cada leitura
+  const processandoLeituraRef = useRef(false);
 
   // States for deleting
   const [veiculoExcluindo, setVeiculoExcluindo] = useState<Veiculo | null>(null);
@@ -76,8 +78,8 @@ export default function LotePage() {
 
   const handleLeitura = useCallback(
     async (conteudo: string) => {
-      if (processandoLeitura) return;
-      setProcessandoLeitura(true);
+      if (processandoLeituraRef.current) return;
+      processandoLeituraRef.current = true;
       try {
         const res = await fetch(`/api/lotes/${loteId}/veiculos`, {
           method: "POST",
@@ -96,11 +98,11 @@ export default function LotePage() {
       } catch {
         setMensagem({ tipo: "erro", texto: "Erro de conexão ao registrar leitura" });
       } finally {
-        setProcessandoLeitura(false);
+        processandoLeituraRef.current = false;
         setTimeout(() => setMensagem(null), 2500);
       }
     },
-    [loteId, processandoLeitura]
+    [loteId]
   );
 
   async function handleGerarPdf() {
