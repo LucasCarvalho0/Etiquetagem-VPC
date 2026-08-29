@@ -24,6 +24,7 @@ async function main() {
   });
 
   const senhaHashUser = await bcrypt.hash("11-62-21", 10);
+  // Com hifens (formato original)
   await prisma.operador.upsert({
     where: { matricula: "11-62-21" },
     update: { senhaHash: senhaHashUser },
@@ -31,6 +32,19 @@ async function main() {
       nome: "Operador 116221",
       matricula: "11-62-21",
       email: "116221@vpc.local",
+      senhaHash: senhaHashUser,
+      role: "OPERADOR",
+    },
+  });
+
+  // Sem hifens (formato alternativo aceito no login)
+  await prisma.operador.upsert({
+    where: { matricula: "116221" },
+    update: { senhaHash: senhaHashUser },
+    create: {
+      nome: "Operador 116221",
+      matricula: "116221",
+      email: "116221b@vpc.local",
       senhaHash: senhaHashUser,
       role: "OPERADOR",
     },
@@ -52,7 +66,10 @@ async function main() {
     },
   });
 
-  console.log("Seed concluído: operador 'admin' / senha '123456' (troque em produção).");
+  console.log("Seed concluído. Credenciais disponíveis:");
+  console.log("  admin / 123456");
+  console.log("  11-62-21 / 11-62-21");
+  console.log("  116221   / 11-62-21");
 }
 
 main()
