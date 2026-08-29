@@ -79,43 +79,56 @@ export async function gerarPdfEtiquetas(
 
     if (config.nomeEmpresa) {
       pagina.drawText(config.nomeEmpresa, {
-        x: x + 4,
-        y: yTopo - 10,
-        size: 6,
+        x: x + 8,
+        y: yTopo - 14,
+        size: 8,
         font: fonteBold,
         color: rgb(0.3, 0.3, 0.3),
       });
     }
 
-    const imagemBarcode = barcodeImagens.get(etiqueta.vin);
-    if (imagemBarcode) {
-      const png = await pdfDoc.embedPng(imagemBarcode);
-      const larguraImg = etiquetaLarguraPt - 12;
-      const alturaImg = etiquetaAlturaPt * 0.45;
-      pagina.drawImage(png, {
-        x: x + 6,
-        y: yBase + etiquetaAlturaPt * 0.4,
-        width: larguraImg,
-        height: alturaImg,
-      });
-    }
-
+    // O usuário pediu o VIN ("chassi") beem grande e claro
+    const vinSize = 18;
+    const vinWidth = fonteBold.widthOfTextAtSize(etiqueta.vin, vinSize);
     pagina.drawText(etiqueta.vin, {
-      x: x + 4,
-      y: yBase + etiquetaAlturaPt * 0.28,
-      size: 7,
+      x: x + (etiquetaLarguraPt - vinWidth) / 2,
+      y: yBase + (etiquetaAlturaPt * 0.68), // Bem topo, centralizado
+      size: vinSize,
       font: fonteBold,
       color: rgb(0, 0, 0),
     });
 
+    const imagemBarcode = barcodeImagens.get(etiqueta.vin);
+    if (imagemBarcode) {
+      const png = await pdfDoc.embedPng(imagemBarcode);
+      
+      // Ajusta o código de barras respeitando a proporção nativa para máxima velocidade de escaneamento.
+      // E centraliza embaixo do chassi conforme solicitado.
+      const targetHeight = etiquetaAlturaPt * 0.40; 
+      const scaleFactor = targetHeight / png.height;
+      const targetWidth = png.width * scaleFactor;
+      
+      const imgX = x + (etiquetaLarguraPt - targetWidth) / 2;
+      const imgY = yBase + (etiquetaAlturaPt * 0.22); // Exatamente abaixo do VIN
+
+      pagina.drawImage(png, {
+        x: imgX,
+        y: imgY,
+        width: targetWidth,
+        height: targetHeight,
+      });
+    }
+
     if (etiqueta.modelo || etiqueta.cor) {
       const linhaInfo = [etiqueta.modelo, etiqueta.cor].filter(Boolean).join(" · ");
+      const infoSize = 9;
+      const infoWidth = fonte.widthOfTextAtSize(linhaInfo, infoSize);
       pagina.drawText(linhaInfo, {
-        x: x + 4,
-        y: yBase + etiquetaAlturaPt * 0.12,
-        size: 6,
+        x: x + (etiquetaLarguraPt - infoWidth) / 2,
+        y: yBase + 4,
+        size: infoSize,
         font: fonte,
-        color: rgb(0.2, 0.2, 0.2),
+        color: rgb(0.3, 0.3, 0.3),
       });
     }
 

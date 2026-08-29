@@ -37,13 +37,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       cor: v.cor,
     })),
     {
-      margemTopoMm: config?.margemTopoMm ?? 5,
-      margemBaixoMm: config?.margemBaixoMm ?? 5,
-      margemEsquerdaMm: config?.margemEsquerdaMm ?? 5,
-      margemDireitaMm: config?.margemDireitaMm ?? 5,
-      larguraEtiquetaMm: config?.larguraEtiquetaMm ?? 60,
-      alturaEtiquetaMm: config?.alturaEtiquetaMm ?? 30,
-      colunasPorPagina: config?.colunasPorPagina ?? 3,
+      // Força 10 itens por página: 1 coluna centralizada
+      margemTopoMm: 10,
+      margemBaixoMm: 10,
+      margemEsquerdaMm: 10,
+      margemDireitaMm: 10,
+      larguraEtiquetaMm: 190, // A4 largura (210) - margens
+      alturaEtiquetaMm: 27.7, // A4 área útil (277) / 10
+      colunasPorPagina: 1,
       nomeEmpresa: config?.nomeEmpresa,
     },
     barcodeImagens
