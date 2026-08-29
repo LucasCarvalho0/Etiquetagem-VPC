@@ -1,0 +1,106 @@
+// Sistema PWA de Conversão de QR Code (VIN) para Código de Barras — VPC
+// Schema Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoleOperador {
+  OPERADOR
+  SUPERVISOR
+  ADMIN
+}
+
+enum StatusLote {
+  ABERTO
+  FINALIZADO
+  CANCELADO
+}
+
+model Operador {
+  id           String   @id @default(cuid())
+  nome         String
+  matricula    String   @unique
+  email        String?  @unique
+  senhaHash    String
+  role         RoleOperador @default(OPERADOR)
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  lotes        Lote[]
+  pdfsGerados  PdfGerado[]
+
+  @@map("operadores")
+}
+
+model Lote {
+  id            String     @id @default(cuid())
+  codigo        String     @unique // ex: LOTE-20260829-001
+  status        StatusLote @default(ABERTO)
+  operadorId    String
+  operador      Operador   @relation(fields: [operadorId], references: [id])
+  clienteFrota  String?    // Localiza, Movida, Unidas, SESE, Locações Americanas, etc.
+  iniciadoEm    DateTime   @default(now())
+  finalizadoEm  DateTime?
+  observacoes   String?
+
+  veiculos      Veiculo[]
+  pdfsGerados   PdfGerado[]
+
+  @@index([status])
+  @@index([operadorId])
+  @@map("lotes")
+}
+
+model Veiculo {
+  id             String   @id @default(cuid())
+  vin            String   // Vehicle Identification Number extraído do QR
+  qrCodeBruto    String   // conteúdo bruto lido do QR Code
+  codigoBarras   String   // valor codificado gerado para o código de barras
+  loteId         String
+  lote           Lote     @relation(fields: [loteId], references: [id])
+  modelo         String?
+  cor            String?
+  posicaoEtiqueta Int     @default(autoincrement())
+  lidoEm         DateTime @default(now())
+
+  // VIN não pode se repetir dentro do mesmo lote
+  @@unique([loteId, vin])
+  @@index([vin])
+  @@map("veiculos")
+}
+
+model PdfGerado {
+  id           String   @id @default(cuid())
+  loteId       String
+  lote         Lote     @relation(fields: [loteId], references: [id])
+  operadorId   String
+  operador     Operador @relation(fields: [operadorId], references: [id])
+  caminhoArquivo String // path/URL do PDF armazenado
+  totalEtiquetas Int
+  geradoEm     DateTime @default(now())
+
+  @@index([loteId])
+  @@map("pdfs_gerados")
+}
+
+model ConfiguracaoEmpresa {
+  id              String   @id @default(cuid())
+  nomeEmpresa     String
+  logoUrl         String?
+  margemTopoMm    Float    @default(5)
+  margemBaixoMm   Float    @default(5)
+  margemEsquerdaMm Float   @default(5)
+  margemDireitaMm Float    @default(5)
+  larguraEtiquetaMm Float  @default(60)
+  alturaEtiquetaMm  Float  @default(30)
+  colunasPorPagina  Int    @default(3)
+  atualizadoEm    DateTime @updatedAt
+
+  @@map("configuracoes_empresa")
+}

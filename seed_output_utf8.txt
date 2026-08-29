@@ -1,0 +1,65 @@
+﻿
+> qr-barcode-vpc@0.1.0 db:seed
+> tsx prisma/seed.ts
+
+node.exe : C:\Users\llc11\Downloads\qr-barcode-vpc\node_mo
+dules\@prisma\client\src\runtime\getPrismaClient.ts:390
+No C:\Program Files\nodejs\npm.ps1:29 caractere:3
++   & $NODE_EXE $NPM_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\llc 
+   11\...maClient.ts:390:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+        throw new PrismaClientInitializationError(
+              ^
+
+
+PrismaClientInitializationError: PrismaClient was 
+instantiated without any options. A driver adapter is 
+required to connect to your database.
+
+Pass a driver adapter to the PrismaClient constructor, 
+for example:
+
+  import { PrismaPg } from '@prisma/adapter-pg'
+  import { PrismaClient } from './generated/prisma/client'
+
+  const adapter = new PrismaPg({ connectionString: 
+process.env.DATABASE_URL })
+  const prisma = new PrismaClient({ adapter })
+
+Learn more about driver adapters: 
+https://pris.ly/d/driver-adapters
+
+If you use Prisma Accelerate instead of connecting to 
+your database directly, pass `accelerateUrl` to the 
+PrismaClient constructor instead of `adapter`.
+    at new t (C:\Users\llc11\Downloads\qr-barcode-vpc\node
+_modules\@prisma\client\src\runtime\getPrismaClient.ts:390
+:15)
+    at bcrypt (C:\Users\llc11\Downloads\qr-barcode-vpc\pri
+sma\seed.ts:5:16)
+    at Object.<anonymous> (C:\Users\llc11\Downloads\qr-bar
+code-vpc\prisma\seed.ts:48:4)
+    at Module._compile 
+(node:internal/modules/cjs/loader:1554:14)
+    at Object.transformer (C:\Users\llc11\Downloads\qr-bar
+code-vpc\node_modules\tsx\dist\register-C557imBs.cjs:9:361
+9)
+    at Module.load 
+(node:internal/modules/cjs/loader:1289:32)
+    at Function._load 
+(node:internal/modules/cjs/loader:1108:12)
+    at TracingChannel.traceSync 
+(node:diagnostics_channel:322:14)
+    at wrapModuleLoad 
+(node:internal/modules/cjs/loader:220:24)
+    at cjsLoader 
+(node:internal/modules/esm/translators:262:5) {
+  clientVersion: '7.10.0',
+  errorCode: undefined,
+  retryable: undefined
+}
+
+Node.js v22.14.0
