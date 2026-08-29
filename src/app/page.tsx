@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { Trash2 } from "lucide-react";
+import { FileDown, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -34,6 +34,7 @@ export default function HomePage() {
   const [criando, setCriando] = useState(false);
   const [loteExcluindo, setLoteExcluindo] = useState<Lote | null>(null);
   const [excluindo, setExcluindo] = useState(false);
+  const [baixandoPdf, setBaixandoPdf] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/lotes")
@@ -75,6 +76,25 @@ export default function HomePage() {
     } finally {
       setExcluindo(false);
       setLoteExcluindo(null);
+    }
+  }
+
+  async function baixarPdf(lote: Lote) {
+    setBaixandoPdf(lote.id);
+    try {
+      const res = await fetch(`/api/lotes/${lote.id}/pdf`, { method: "POST" });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${lote.codigo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setBaixandoPdf(null);
     }
   }
 
@@ -146,8 +166,19 @@ export default function HomePage() {
                       {new Date(lote.iniciadoEm).toLocaleDateString("pt-BR")} · {lote.operador.nome}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 ml-2">
-                    <span className="text-muted-foreground">{lote._count.veiculos} veíc.</span>
+                  <div className="flex items-center gap-2 ml-2">
+                    <span className="text-muted-foreground text-xs">{lote._count.veiculos} veíc.</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => baixarPdf(lote)}
+                      disabled={baixandoPdf === lote.id || lote._count.veiculos === 0}
+                      aria-label="Baixar PDF do lote"
+                      title="Baixar PDF"
+                    >
+                      <FileDown className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

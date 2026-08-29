@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
 import { prisma } from "@/lib/prisma";
 import { verificarToken } from "@/lib/auth";
 import { gerarPdfEtiquetas } from "@/lib/pdf-etiquetas";
-
-const bodySchema = z.object({
-  // código de barras gerado no client via JsBarcode (canvas.toDataURL), um PNG base64 por VIN
-  imagensBarcode: z.array(z.object({ vin: z.string(), pngBase64: z.string() })),
-});
+import { gerarBarcodePngNode } from "@/lib/barcode-node";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: loteId } = await params;
@@ -18,11 +11,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const payload = token ? verificarToken(token) : null;
   if (!payload) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
 
-  const body = await req.json();
-  const parsed = bodySchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
-
-  const lote = await prisma.lote.findUnique({ where: { id: loteId }, include: { veiculos: true } });
+  const lote = await prisma.lote.findUnique({
+    where: { id: loteId },
+    include: { veiculos: { orderBy: { posicaoEtiqueta: "asc" } } },
+  });
   if (!lote) return NextResponse.json({ erro: "Lote não encontrado" }, { status: 404 });
   if (lote.veiculos.length === 0) {
     return NextResponse.json({ erro: "Lote não possui veículos lidos" }, { status: 422 });
@@ -30,14 +22,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const config = await prisma.configuracaoEmpresa.findFirst();
 
+  // Gera barcodes no servidor (sem depender do DOM)
   const barcodeImagens = new Map<string, Uint8Array>();
-  for (const img of parsed.data.imagensBarcode) {
-    const base64Limpo = img.pngBase64.replace(/^data:image\/png;base64,/, "");
-    barcodeImagens.set(img.vin, Buffer.from(base64Limpo, "base64"));
+  for (const v of lote.veiculos) {
+    const pngBuffer = await gerarBarcodePngNode(v.vin);
+    barcodeImagens.set(v.vin, pngBuffer);
   }
 
   const pdfBytes = await gerarPdfEtiquetas(
-    lote.veiculos.map((v: (typeof lote.veiculos)[number]) => ({
+    lote.veiculos.map((v) => ({
       vin: v.vin,
       codigoBarras: v.codigoBarras,
       modelo: v.modelo,
@@ -56,19 +49,24 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     barcodeImagens
   );
 
-  const dirDestino = path.join(process.cwd(), "public", "pdfs");
-  await mkdir(dirDestino, { recursive: true });
-  const nomeArquivo = `${lote.codigo}-${Date.now()}.pdf`;
-  await writeFile(path.join(dirDestino, nomeArquivo), pdfBytes);
-
-  const registro = await prisma.pdfGerado.create({
+  // Registra no banco (sem salvar em disco)
+  await prisma.pdfGerado.create({
     data: {
       loteId: lote.id,
       operadorId: payload.operadorId,
-      caminhoArquivo: `/pdfs/${nomeArquivo}`,
+      caminhoArquivo: `gerado-em-memoria`,
       totalEtiquetas: lote.veiculos.length,
     },
   });
 
-  return NextResponse.json({ pdf: registro, url: registro.caminhoArquivo });
+  // Retorna o PDF diretamente como stream de bytes
+  const nomeArquivo = `${lote.codigo}.pdf`;
+  return new NextResponse(pdfBytes, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="${nomeArquivo}"`,
+      "Content-Length": pdfBytes.byteLength.toString(),
+    },
+  });
 }

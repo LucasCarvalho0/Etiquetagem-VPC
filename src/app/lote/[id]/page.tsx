@@ -110,24 +110,25 @@ export default function LotePage() {
     setGerandoPdf(true);
     setScannerAtivo(false);
     try {
-      const imagensBarcode = veiculos.map((v) => ({
-        vin: v.vin,
-        pngBase64: gerarBarcodePng(v.vin),
-      }));
-
-      const res = await fetch(`/api/lotes/${loteId}/pdf`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagensBarcode }),
-      });
-      const data = await res.json();
+      const res = await fetch(`/api/lotes/${loteId}/pdf`, { method: "POST" });
       if (!res.ok) {
+        const data = await res.json();
         setMensagem({ tipo: "erro", texto: data.erro ?? "Falha ao gerar PDF" });
         return;
       }
 
+      // Faz download direto via blob
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lote-${loteId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
       await fetch(`/api/lotes/${loteId}/finalizar`, { method: "POST" });
-      window.open(data.url, "_blank");
       router.push("/");
     } finally {
       setGerandoPdf(false);
